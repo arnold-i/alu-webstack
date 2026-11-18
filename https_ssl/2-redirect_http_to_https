@@ -1,0 +1,33 @@
+global
+    log /dev/log local0
+    log /dev/log local1 notice
+    chroot /var/lib/haproxy
+    stats socket /run/haproxy/admin.sock mode 660 level admin expose-fd listeners
+    stats timeout 30s
+    user haproxy
+    group haproxy
+    daemon
+    ssl-default-bind-options no-sslv3
+    tune.ssl.default-dh-param 2048
+
+defaults
+    log global
+    mode http
+    option httplog
+    option dontlognull
+    timeout connect 5000
+    timeout client 50000
+    timeout server 50000
+
+frontend web_frontend
+    bind *:80
+    bind *:443 ssl crt /etc/haproxy/certs/www.arnold-i.tech.pem
+    http-request redirect scheme https code 301 unless { ssl_fc }
+    mode http
+    default_backend web_backend
+
+backend web_backend
+    mode http
+    balance roundrobin
+    server 7302-web-01 3.10.235.43:80 check
+    server 7302-web-02 35.179.115.123:80 check
